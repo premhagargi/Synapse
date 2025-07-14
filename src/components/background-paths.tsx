@@ -47,75 +47,60 @@ function FloatingPaths({ position }: { position: number }) {
 }
 
 export default function BackgroundPaths({
-  title = "The Future of Decentralized AI",
+  onButtonClick,
 }: {
-  title?: string
+  onButtonClick: () => void;
 }) {
-  const words = title.split(" ")
-
+  const title = "Synapse AI"
+  const subtitle = "The Future of Decentralized Intelligence"
+  
   return (
-    <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-white dark:bg-neutral-950">
+    <header className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-background">
       <div className="absolute inset-0">
         <FloatingPaths position={1} />
         <FloatingPaths position={-1} />
       </div>
+      <div className="absolute inset-0 bg-background/50 dark:bg-background/70 backdrop-blur-sm"></div>
 
       <div className="relative z-10 container mx-auto px-4 md:px-6 text-center">
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 2 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1.5, ease: "easeOut" }}
           className="max-w-4xl mx-auto"
         >
-          <h1 className="text-5xl sm:text-7xl md:text-8xl font-bold mb-8 tracking-tighter">
-            {words.map((word, wordIndex) => (
-              <span key={wordIndex} className="inline-block mr-4 last:mr-0">
-                {word.split("").map((letter, letterIndex) => (
-                  <motion.span
-                    key={`${wordIndex}-${letterIndex}`}
-                    initial={{ y: 100, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{
-                      delay: wordIndex * 0.1 + letterIndex * 0.03,
-                      type: "spring",
-                      stiffness: 150,
-                      damping: 25,
-                    }}
-                    className="inline-block text-transparent bg-clip-text 
-                                        bg-gradient-to-r from-neutral-900 to-neutral-700/80 
-                                        dark:from-white dark:to-white/80"
-                  >
-                    {letter}
-                  </motion.span>
-                ))}
-              </span>
-            ))}
+          <h1 className="text-5xl sm:text-7xl md:text-8xl font-bold mb-4 tracking-tighter font-headline
+            bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/70
+            dark:from-primary-foreground dark:to-primary-foreground/70"
+          >
+            {title}
           </h1>
 
-          <div
-            className="inline-block group relative bg-gradient-to-b from-black/10 to-white/10 
-                        dark:from-white/10 dark:to-black/10 p-px rounded-2xl backdrop-blur-lg 
-                        overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300"
+          <motion.p 
+            className="text-lg md:text-2xl text-muted-foreground mb-10"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5, duration: 1 }}
+          >
+            {subtitle}
+          </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1, duration: 0.8 }}
           >
             <Button
-              variant="ghost"
-              className="rounded-[1.15rem] px-8 py-6 text-lg font-semibold backdrop-blur-md 
-                            bg-white/95 hover:bg-white/100 dark:bg-black/95 dark:hover:bg-black/100 
-                            text-black dark:text-white transition-all duration-300 
-                            group-hover:-translate-y-0.5 border border-black/10 dark:border-white/10
-                            hover:shadow-md dark:hover:shadow-neutral-800/50"
+              size="lg"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-full text-lg font-semibold shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 transition-all duration-300 transform hover:-translate-y-1"
+              onClick={onButtonClick}
             >
-              <span className="opacity-90 group-hover:opacity-100 transition-opacity">Discover Excellence</span>
-              <span
-                className="ml-3 opacity-70 group-hover:opacity-100 group-hover:translate-x-1.5 
-                                transition-all duration-300"
-              >
-                →
-              </span>
+              Learn More
+              <span className="ml-2 transition-transform group-hover:translate-x-1">→</span>
             </Button>
-          </div>
+          </motion.div>
         </motion.div>
       </div>
-    </div>
+    </header>
   )
 }
