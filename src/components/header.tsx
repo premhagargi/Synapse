@@ -15,9 +15,6 @@ export function Header() {
         <Link href="#cta" className="text-sm font-medium hover:underline underline-offset-4" prefetch={false}>
           Join
         </Link>
-        <Link href="#research" className="text-sm font-medium hover:underline underline-offset-4" prefetch={false}>
-          Research
-        </Link>
       </nav>
     </header>
   );
