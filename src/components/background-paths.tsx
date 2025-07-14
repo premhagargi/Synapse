@@ -26,7 +26,6 @@ function FloatingPaths({ position }: { position: number }) {
             key={path.id}
             d={path.d}
             stroke="currentColor"
-            strokeWidth={path.width}
             strokeOpacity={0.1 + path.id * 0.03}
             initial={{ pathLength: 0.3, opacity: 0.6 }}
             animate={{
