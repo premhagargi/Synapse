@@ -6,19 +6,23 @@ export default function ContactPage() {
   return (
     <div className="min-h-screen bg-[#f8f8f8] font-body text-black">
       <header className="flex items-center justify-between p-6">
-        <Link href="/" className="flex space-x-2">
-          <div className="h-2 w-2 rounded-full bg-black"></div>
-          <div className="h-2 w-2 rounded-full bg-black"></div>
+        <Link href="/" className="flex items-center space-x-2">
+            <div className="h-2 w-2 rounded-full bg-black"></div>
+            <div className="h-2 w-2 rounded-full bg-black"></div>
+            <span className="font-headline font-bold">Synapse AI</span>
         </Link>
-        <div className="flex items-center space-x-6">
+        <div className="hidden items-center space-x-6 md:flex">
           <Link href="/about" className="text-sm font-light hover:underline">
             ABOUT
           </Link>
           <Link href="/how-it-works" className="text-sm font-light hover:underline">
             HOW IT WORKS
           </Link>
+          <Link href="/dashboard" className="text-sm font-light hover:underline">
+            DASHBOARD
+          </Link>
           <Link href="/contact" className="text-sm font-light hover:underline">
-            CONTACT US
+            CONTACT
           </Link>
         </div>
       </header>
@@ -41,7 +45,7 @@ export default function ContactPage() {
             </p>
         </div>
 
-        <section id="cta" className="relative mx-auto mt-20 grid max-w-5xl grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-12">
+        <section id="access-ai" className="relative mx-auto mt-20 grid max-w-5xl grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-12">
           {/* CTA for AI Users */}
           <div className="cta-section flex flex-col justify-between rounded-2xl border border-gray-200 bg-white/50 p-8 text-center shadow-lg lg:p-12">
             <div>
@@ -51,24 +55,25 @@ export default function ContactPage() {
               </p>
             </div>
             <form className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <input type="email" placeholder="Enter your email" className="h-12 flex-grow rounded-md border-gray-300 bg-white px-4 text-black placeholder-gray-400" />
-              <Button type="submit" size="lg" className="h-12 bg-black text-white hover:bg-gray-800">
+              <input type="email" placeholder="Enter your email" className="h-12 flex-grow rounded-md border-gray-300 bg-white px-4 text-black placeholder-gray-400 focus:ring-2 focus:ring-primary" />
+              <Button type="submit" size="lg" className="h-12">
                 Request Access <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </form>
           </div>
 
           {/* CTA for Compute Providers */}
-          <div className="cta-section flex flex-col justify-between rounded-2xl border border-pink-200 bg-gradient-to-br from-pink-50/50 to-orange-50/50 p-8 text-center shadow-lg lg:p-12">
+          <div id="contribute" className="cta-section flex flex-col justify-between rounded-2xl border border-pink-200 bg-gradient-to-br from-pink-50/50 to-orange-50/50 p-8 text-center shadow-lg lg:p-12">
             <div>
               <h3 className="text-3xl font-bold text-gray-800">Contribute & Earn</h3>
               <p className="mt-4 text-gray-500">
                 Have an idle GPU or laptop? Join our network, contribute your compute power, and start earning rewards today.
               </p>
             </div>
-            <form className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <input type="email" placeholder="Enter your email" className="h-12 flex-grow rounded-md border-gray-300 bg-white px-4 text-black placeholder-gray-400" />
-              <Button type="submit" size="lg" className="h-12 bg-black text-white hover:bg-gray-800">
+            <form className="mt-8 flex flex-col gap-4">
+              <input type="email" placeholder="Enter your email" className="h-12 w-full rounded-md border-gray-300 bg-white px-4 text-black placeholder-gray-400 focus:ring-2 focus:ring-primary" />
+              <textarea placeholder="Tell us about your hardware (e.g., RTX 3080, M2 MacBook Air)" rows={3} className="w-full rounded-md border-gray-300 bg-white px-4 py-3 text-black placeholder-gray-400 focus:ring-2 focus:ring-primary"></textarea>
+              <Button type="submit" size="lg" className="h-12">
                 Join the Network <Cpu className="ml-2 h-4 w-4" />
               </Button>
             </form>
