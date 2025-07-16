@@ -14,36 +14,14 @@ export default function Hero({ onLearnMoreClick }: HeroProps) {
 
   useLayoutEffect(() => {
     let ctx = gsap.context(() => {
-      const t1 = gsap.timeline();
-      t1.from("#intro-slider", {
-        xPercent: "-100",
-        duration: 1.3,
-        delay: 0.3,
-      }).from(["#title-1", "#title-2", "#title-3"], {
+      // Animation for the main hero content
+      gsap.from(["#welcome", "#subtitle", "#cta-button"], {
         opacity: 0,
         y: "+=30",
-        stagger: 0.5,
-      }).to(["#title-1", "#title-2", "#title-3"], {
-        opacity: 0,
-        y: "-=30",
-        delay: 0.3,
-        stagger: 0.5,
-      }).to("#intro-slider", {
-        xPercent: "-100",
-        duration: 1.3,
-      }).from("#welcome", {
-        opacity: 0,
-        duration: 0.5,
-      }).from("#subtitle", {
-        opacity: 0,
-        y: "+=20",
-        duration: 0.5,
-        delay: 0.2
-      }).from("#cta-button", {
-        opacity: 0,
-        y: "+=20",
-        duration: 0.5,
-        delay: 0.2
+        duration: 1,
+        stagger: 0.3,
+        delay: 0.5,
+        ease: 'power3.out'
       });
     }, comp);
 
@@ -52,12 +30,6 @@ export default function Hero({ onLearnMoreClick }: HeroProps) {
 
   return (
     <div className="relative text-center" ref={comp}>
-      <div id="intro-slider" className="h-screen p-10 bg-gray-50 text-gray-900 absolute top-0 left-0 font-spaceGrotesk z-20 w-full flex flex-col gap-10 tracking-tight">
-        <h1 className="text-8xl" id="title-1">Democratize AI.</h1>
-        <h1 className="text-8xl" id="title-2">Ensure Privacy.</h1>
-        <h1 className="text-8xl" id="title-3">Lower Costs.</h1>
-      </div>
-
       <div className="flex flex-col items-center space-y-8">
         <h1 id="welcome" className="text-6xl md:text-8xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-white to-neutral-400">
           Synapse AI
