@@ -31,10 +31,10 @@ export default function Hero({ onLearnMoreClick }: HeroProps) {
   return (
     <div className="relative text-center" ref={comp}>
       <div className="flex flex-col items-center space-y-8">
-        <h1 id="welcome" className="text-6xl md:text-8xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-white to-neutral-400">
+        <h1 id="welcome" className="text-6xl md:text-8xl font-bold tracking-tighter text-white">
           Synapse AI
         </h1>
-        <p id="subtitle" className="text-xl md:text-2xl text-neutral-300 max-w-3xl">
+        <p id="subtitle" className="text-xl md:text-2xl text-white max-w-3xl">
           The future of AI is decentralized. Access affordable, privacy-focused inference powered by a global network of community hardware.
         </p>
         <div id="cta-button">

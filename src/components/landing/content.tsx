@@ -4,7 +4,7 @@ import React, { useLayoutEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Cpu, DollarSign, ArrowRight, Server, Globe } from "lucide-react";
+import { DollarSign, ArrowRight, Server, Globe, Cpu } from "lucide-react";
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
@@ -18,7 +18,7 @@ const FeatureCard = ({ icon, title, children }: { icon: React.ReactNode, title: 
       </div>
     </CardHeader>
     <CardTitle className="text-2xl font-semibold mb-2 text-white">{title}</CardTitle>
-    <CardContent className="p-0 text-neutral-300">
+    <CardContent className="p-0 text-white">
       {children}
     </CardContent>
   </Card>
@@ -29,7 +29,7 @@ const HowItWorksStep = ({ num, title, children }: { num: string, title: string, 
     <div className="flex-shrink-0 text-6xl font-bold text-primary/50">{num}</div>
     <div>
       <h3 className="text-2xl font-bold text-white mb-2">{title}</h3>
-      <p className="text-neutral-300">{children}</p>
+      <p className="text-white">{children}</p>
     </div>
   </div>
 );
@@ -109,7 +109,7 @@ export default function Content() {
         <section>
           <div className="text-center mb-16">
             <h2 className="section-title text-4xl md:text-5xl font-bold tracking-tight">How It Works</h2>
-            <p className="mt-4 text-lg text-neutral-400 max-w-2xl mx-auto">
+            <p className="mt-4 text-lg text-white max-w-2xl mx-auto">
               Our platform connects those who need AI processing with a global network of community-run hardware.
             </p>
           </div>
@@ -130,7 +130,7 @@ export default function Content() {
         <section>
           <div className="text-center mb-16">
             <h2 className="section-title text-4xl md:text-5xl font-bold tracking-tight">A New Paradigm for AI</h2>
-            <p className="mt-4 text-lg text-neutral-400 max-w-2xl mx-auto">
+            <p className="mt-4 text-lg text-white max-w-2xl mx-auto">
               We're building a more accessible, private, and cost-effective AI ecosystem.
             </p>
           </div>
@@ -153,7 +153,7 @@ export default function Content() {
           <div className="cta-section bg-neutral-900/50 border border-primary/20 rounded-2xl p-8 lg:p-12 text-center flex flex-col justify-between">
             <div>
               <h3 className="text-3xl font-bold text-white">Access Affordable AI</h3>
-              <p className="mt-4 text-neutral-300">
+              <p className="mt-4 text-white">
                 Get early access to low-cost, privacy-preserving AI inference. Perfect for startups, developers, and small businesses.
               </p>
             </div>
@@ -169,7 +169,7 @@ export default function Content() {
           <div className="cta-section bg-accent/20 border border-accent/30 rounded-2xl p-8 lg:p-12 text-center flex flex-col justify-between">
             <div>
               <h3 className="text-3xl font-bold text-white">Contribute & Earn</h3>
-              <p className="mt-4 text-neutral-300">
+              <p className="mt-4 text-white">
                 Have an idle GPU or laptop? Join our network, contribute your compute power, and start earning rewards today.
               </p>
             </div>
