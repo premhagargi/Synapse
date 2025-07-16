@@ -23,7 +23,7 @@ export default function Page() {
         </div>
       </header>
 
-      <main className="relative px-6 pt-12">
+      <main className="relative px-6 pt-12 pb-24">
         <div
           className="absolute -right-20 -top-20 h-[400px] w-[400px] animate-pulse rounded-full bg-gradient-to-br from-pink-400/70 via-orange-300/70 to-yellow-200/70 opacity-70 blur-3xl"
           aria-hidden="true"
@@ -39,9 +39,9 @@ export default function Page() {
           <div className="mt-24 flex flex-col items-start justify-between gap-12 md:flex-row md:items-end">
             <div className="max-w-md">
               <Button variant="outline" className="rounded-full border-2 border-black px-8" asChild>
-                <Link href="/contact">
+                <Link href="#services">
                   <span className="relative">
-                    GET STARTED
+                    OUR SERVICES
                     <div className="absolute -bottom-4 -left-4 -right-4 -top-4 animate-spin-slow rounded-full border border-black opacity-50"></div>
                   </span>
                 </Link>
@@ -66,8 +66,33 @@ export default function Page() {
           </p>
         </div>
 
+        <section id="services" className="mt-24 scroll-mt-24">
+          <div className="mx-auto max-w-5xl">
+            <h2 className="text-center text-4xl font-light tracking-tight md:text-5xl">Our Services</h2>
+            <div className="mt-12 grid grid-cols-1 gap-x-8 gap-y-10 border-t border-gray-200 pt-10 md:grid-cols-2 lg:grid-cols-3">
+              <div>
+                <h3 className="text-lg font-semibold leading-7 text-gray-900">Decentralized AI Inference</h3>
+                <p className="mt-2 text-sm leading-6 text-gray-600">
+                  Affordable, scalable AI task processing for chatbots, summarization, and more on a P2P network.
+                </p>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold leading-7 text-gray-900">Privacy-Focused Models</h3>
+                <p className="mt-2 text-sm leading-6 text-gray-600">
+                  Train and run models on local data without compromising user privacy or sharing sensitive information.
+                </p>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold leading-7 text-gray-900">Community-Powered Compute</h3>
+                <p className="mt-2 text-sm leading-6 text-gray-600">
+                  Leverage a global network of underutilized GPUs and CPUs to power the next generation of AI.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section id="cta" className="grid grid-cols-1 gap-8 py-24 scroll-mt-24 lg:grid-cols-2 lg:gap-12">
-          {/* CTA for AI Users */}
           <div className="cta-section flex flex-col justify-between rounded-2xl border border-gray-200 bg-white/50 p-8 text-center lg:p-12">
             <div>
               <h3 className="text-3xl font-bold text-gray-800">Access Affordable AI</h3>
@@ -83,7 +108,6 @@ export default function Page() {
             </form>
           </div>
 
-          {/* CTA for Compute Providers */}
           <div className="cta-section flex flex-col justify-between rounded-2xl border border-pink-200 bg-gradient-to-br from-pink-50/50 to-orange-50/50 p-8 text-center lg:p-12">
             <div>
               <h3 className="text-3xl font-bold text-gray-800">Contribute & Earn</h3>
