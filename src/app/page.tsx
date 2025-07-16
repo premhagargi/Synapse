@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Atom, Globe, Scale, ShieldCheck, Zap, Coins, KeyRound, Server, Cpu } from "lucide-react";
+import { Atom, Globe, Scale, ShieldCheck, Zap, Cpu } from "lucide-react";
 import { motion } from "framer-motion";
 
 const fadeIn = {
