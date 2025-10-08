@@ -13,14 +13,15 @@ import { useFirestore } from '@/firebase';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
-export function useCollection<T>(path: string) {
+export function useCollection<T>(path: string | undefined) {
   const db = useFirestore();
   const [data, setData] = useState<T[] | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!db) {
+    if (!db || !path) {
       setLoading(false);
+      setData(null);
       return;
     }
 

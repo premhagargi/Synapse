@@ -48,10 +48,9 @@ export default function DashboardPage() {
   const [chatMessage, setChatMessage] = useState('');
   const [isChatting, setIsChatting] = useState(false);
 
-  // Memoize the path to avoid re-renders
   const documentsPath = user ? `users/${user.uid}/documents` : undefined;
   const { data: documents, loading: docsLoading } = useCollection<DocumentData>(
-    documentsPath!
+    documentsPath
   );
 
   useEffect(() => {
