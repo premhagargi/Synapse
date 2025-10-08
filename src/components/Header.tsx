@@ -39,6 +39,12 @@ export function Header() {
               >
                 DASHBOARD
               </Link>
+              <Link
+                href="/profile"
+                className="text-sm font-light hover:underline"
+              >
+                PROFILE
+              </Link>
               <Button
                 variant="ghost"
                 onClick={handleLogout}
