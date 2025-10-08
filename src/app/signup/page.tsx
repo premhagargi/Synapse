@@ -25,6 +25,8 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Header } from '@/components/Header';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const formSchema = z
   .object({
@@ -69,11 +71,21 @@ export default function SignupPage() {
         displayName: values.displayName,
       });
 
-      await setDoc(doc(db, 'users', user.uid), {
+      const userDocRef = doc(db, 'users', user.uid);
+      const userProfileData = {
         uid: user.uid,
         email: user.email,
         displayName: values.displayName,
         photoURL: user.photoURL,
+      };
+
+      setDoc(userDocRef, userProfileData).catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: userDocRef.path,
+          operation: 'create',
+          requestResourceData: userProfileData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
       });
 
       router.push('/dashboard');
@@ -95,16 +107,24 @@ export default function SignupPage() {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      await setDoc(
-        doc(db, 'users', user.uid),
-        {
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName,
-          photoURL: user.photoURL,
-        },
-        { merge: true }
-      ); // Merge to avoid overwriting existing data if user signs up differently first
+      const userDocRef = doc(db, 'users', user.uid);
+      const userProfileData = {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+        photoURL: user.photoURL,
+      };
+
+      setDoc(userDocRef, userProfileData, { merge: true }).catch(
+        async (serverError) => {
+          const permissionError = new FirestorePermissionError({
+            path: userDocRef.path,
+            operation: 'create',
+            requestResourceData: userProfileData,
+          });
+          errorEmitter.emit('permission-error', permissionError);
+        }
+      );
 
       router.push('/dashboard');
     } catch (error: any) {
