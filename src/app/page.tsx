@@ -113,7 +113,7 @@ export default function Page() {
                   <li>Natural Language Q&A</li>
                   <li>Priority Support</li>
               </ul>
-              <Button className="mt-8 rounded-full border-2 border-black px-12 py-6 text-black hover:bg-black hover:text-white">
+              <Button variant="outline" className="mt-8 rounded-full border-2 border-black px-12 py-6 text-black hover:bg-black hover:text-white">
                   Get Started
               </Button>
           </div>
