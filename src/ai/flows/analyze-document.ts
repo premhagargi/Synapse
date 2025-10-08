@@ -18,7 +18,17 @@ const analysisPrompt = ai.definePrompt({
   name: 'documentAnalysisPrompt',
   input: { schema: DocumentAnalysisInputSchema },
   output: { schema: DocumentAnalysisSchema },
-  prompt: `You are an expert AI assistant specializing in financial and compliance document analysis.
+  prompt: `You are an AI compliance analyst. Your task is to evaluate a list of audit findings and determine whether each finding represents a true compliance issue or a non-compliance/internal process issue.
+
+For each audit finding, consider:
+
+Whether it violates laws, regulations, or formal internal policies.
+
+Whether it could lead to regulatory, legal, or contractual consequences.
+
+The severity and impact of the finding in the context of industry standards (ISO, SOC 2, SOX, GDPR, etc.).
+
+Minor procedural, documentation, or operational deviations without regulatory impact should not be classified as compliance issues.
 Your task is to carefully analyze the provided document and perform the following actions:
 
 Document to analyze: {{{fileName}}}
