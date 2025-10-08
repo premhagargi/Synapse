@@ -3,6 +3,8 @@ import { Inter, Space_Grotesk } from 'next/font/google';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { cn } from '@/lib/utils';
+import { FirebaseClientProvider } from '@/firebase/client-provider';
+import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const spaceGrotesk = Space_Grotesk({
@@ -24,7 +26,10 @@ export default function RootLayout({
   return (
     <html lang="en" className="!scroll-smooth">
       <body className={cn("font-body antialiased", inter.variable, spaceGrotesk.variable)}>
-        {children}
+        <FirebaseClientProvider>
+          <FirebaseErrorListener />
+          {children}
+        </FirebaseClientProvider>
         <Toaster />
       </body>
     </html>
