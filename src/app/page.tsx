@@ -10,7 +10,7 @@ export default function Page() {
       <main className="relative px-6 pt-12 pb-24">
         {/* Gradient blob */}
         <div
-          className="absolute right-0 top-0 h-[400px] w-[400px] animate-pulse rounded-full bg-gradient-to-br from-pink-400/70 via-orange-300/70 to-yellow-200/70 opacity-70 blur-3xl"
+          className="absolute right-0 top-0 h-[400px] w-[400px] animate-pulse rounded-full bg-gradient-to-br from-pink-400/70 via-orange-300/70 to-yellow-200/70 opacity-70 blur-3xl -z-10"
           aria-hidden="true"
         />
 
@@ -25,7 +25,7 @@ export default function Page() {
 
           <div className="mt-24 flex flex-col items-start justify-between gap-12 md:flex-row md:items-end">
             <div className="max-w-md">
-              <Button variant="outline" className="rounded-full border-2 border-black px-8 py-6 text-black hover:bg-black hover:text-white">
+              <Button variant="outline" className="group rounded-full border-2 border-black px-8 py-6 text-black hover:bg-black hover:text-white">
                 <span className="relative">
                   GET A DEMO
                   <div className="absolute -left-4 -right-4 -top-4 -bottom-4 animate-spin-slow rounded-full border border-black opacity-50 group-hover:border-white"></div>
@@ -87,7 +87,7 @@ export default function Page() {
         <section id="pricing" className="mt-24 text-center">
           <h2 className="text-3xl font-light tracking-tight text-gray-800 md:text-4xl">Simple, Transparent Pricing</h2>
           <p className="mt-4 text-lg text-gray-600">Choose the plan that's right for you. No hidden fees.</p>
-          <div className="mt-12 mx-auto max-w-md border rounded-lg p-8">
+          <div className="mt-12 mx-auto max-w-md border rounded-lg p-8 bg-white/50">
               <h3 className="text-2xl font-bold">Pro Tier</h3>
               <p className="text-5xl font-light my-4">$49<span className="text-lg">/mo</span></p>
               <ul className="space-y-2 text-gray-600">

@@ -17,13 +17,19 @@ export function Header() {
   };
 
   return (
-    <header className="flex items-center justify-between p-6">
+    <header className="flex items-center justify-between p-6 bg-white/50 backdrop-blur-sm sticky top-0 z-50">
       <Link href="/" className="flex items-center space-x-2">
         <div className="h-2 w-2 rounded-full bg-black"></div>
         <div className="h-2 w-2 rounded-full bg-black"></div>
         <span className="font-headline font-bold">Synapse AI</span>
       </Link>
       <div className="flex items-center space-x-6">
+        <Link href="/help" className="text-sm font-light hover:underline">
+          HELP
+        </Link>
+        <Link href="/support" className="text-sm font-light hover:underline">
+          SUPPORT
+        </Link>
         {!loading &&
           (user ? (
             <>
@@ -36,7 +42,7 @@ export function Header() {
               <Button
                 variant="ghost"
                 onClick={handleLogout}
-                className="text-sm font-light hover:underline"
+                className="text-sm font-light hover:underline p-0 h-auto"
               >
                 LOG OUT
               </Button>
