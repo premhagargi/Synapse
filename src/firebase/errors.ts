@@ -34,3 +34,19 @@ export class FirestorePermissionError extends Error {
     return this.message;
   }
 }
+
+export class FirestoreIndexError extends Error {
+  public readonly indexUrl?: string;
+
+  constructor(message: string, indexUrl?: string) {
+    super(message);
+    this.name = 'FirestoreIndexError';
+    this.indexUrl = indexUrl;
+
+    Object.setPrototypeOf(this, FirestoreIndexError.prototype);
+  }
+
+  public toString() {
+    return this.message;
+  }
+}

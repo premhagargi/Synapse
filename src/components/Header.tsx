@@ -21,6 +21,10 @@ export function Header() {
   const { user, loading } = useUser();
   const auth = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+  
+  // Check if we're on the landing page
+  const isLandingPage = pathname === '/';
 
   const handleLogout = async () => {
     await auth.signOut();
@@ -35,24 +39,32 @@ export function Header() {
         <span className="font-headline font-bold">Synapse AI</span>
       </Link>
       <div className="flex items-center space-x-6">
-        <NavLink href="/help">
-          HELP
-        </NavLink>
-        <NavLink href="/support">
-          SUPPORT
-        </NavLink>
+        {!isLandingPage && (
+          <>
+            <NavLink href="/help">
+              HELP
+            </NavLink>
+            <NavLink href="/support">
+              SUPPORT
+            </NavLink>
+          </>
+        )}
         {!loading &&
           (user ? (
             <>
-              <NavLink href="/dashboard">
-                DASHBOARD
-              </NavLink>
-              <NavLink href="/documents">
-                DOCUMENTS
-              </NavLink>
-              <NavLink href="/profile">
-                PROFILE
-              </NavLink>
+              {!isLandingPage && (
+                <>
+                  <NavLink href="/dashboard">
+                    DASHBOARD
+                  </NavLink>
+                  <NavLink href="/documents">
+                    DOCUMENTS
+                  </NavLink>
+                  <NavLink href="/profile">
+                    PROFILE
+                  </NavLink>
+                </>
+              )}
               <Button
                 variant="ghost"
                 onClick={handleLogout}
