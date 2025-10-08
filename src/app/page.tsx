@@ -1,27 +1,11 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { Header } from "@/components/Header"
 
 export default function Page() {
   return (
     <div className="min-h-screen bg-[#f8f8f8] font-body text-black">
-      <header className="flex items-center justify-between p-6">
-        <Link href="/" className="flex items-center space-x-2">
-            <div className="h-2 w-2 rounded-full bg-black"></div>
-            <div className="h-2 w-2 rounded-full bg-black"></div>
-            <span className="font-headline font-bold">Synapse AI</span>
-        </Link>
-        <div className="flex items-center space-x-6">
-          <Link href="#features" className="text-sm font-light hover:underline">
-            FEATURES
-          </Link>
-          <Link href="#pricing" className="text-sm font-light hover:underline">
-            PRICING
-          </Link>
-          <Link href="/login" className="text-sm font-light hover:underline">
-            LOGIN
-          </Link>
-        </div>
-      </header>
+      <Header />
 
       <main className="relative px-6 pt-12 pb-24">
         {/* Gradient blob */}

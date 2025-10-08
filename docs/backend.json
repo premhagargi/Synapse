@@ -43,9 +43,9 @@
           "type": "string",
           "description": "The original name of the uploaded file."
         },
-        "storagePath": {
+        "fileContent": {
           "type": "string",
-          "description": "The path to the document in Firebase Storage."
+          "description": "The Base64 encoded content of the document."
         },
         "createdAt": {
           "type": "string",
@@ -73,7 +73,7 @@
           }
         }
       },
-      "required": ["id", "userId", "fileName", "storagePath", "createdAt"]
+      "required": ["id", "userId", "fileName", "fileContent", "createdAt"]
     }
   },
   "auth": {
@@ -90,7 +90,7 @@
       "schema": {
         "$ref": "#/entities/Document"
       },
-      "description": "Stores metadata for documents uploaded by a user."
+      "description": "Stores metadata and content for documents uploaded by a user."
     }
   }
 }
