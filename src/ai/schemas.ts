@@ -17,6 +17,13 @@ export type DocumentAnalysisInput = z.infer<
   typeof DocumentAnalysisInputSchema
 >;
 
+export const ComplianceIssueSchema = z.object({
+  auditArea: z.string().describe("The area of the audit the finding relates to (e.g., 'Access Control', 'Data Encryption')."),
+  summary: z.string().describe("A concise summary of the finding."),
+  classification: z.enum(['Compliance Issue', 'Internal/Process Issue']).describe("Classification of the finding."),
+  reasoning: z.string().describe("A short justification for the classification, explaining the violation or deviation.")
+});
+
 export const DocumentAnalysisSchema = z.object({
   summary: z
     .string()
@@ -33,7 +40,7 @@ export const DocumentAnalysisSchema = z.object({
     })
     .describe('Structured data extracted from the document.'),
   complianceIssues: z
-    .array(z.string())
+    .array(ComplianceIssueSchema)
     .describe(
       'A list of potential compliance risks, non-standard clauses, or missing information flagged for review.'
     ),

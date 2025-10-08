@@ -1,10 +1,21 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useUser } from '@/firebase';
 import { useAuth } from '@/firebase';
 import { Button } from './ui/button';
+import { cn } from '@/lib/utils';
+
+const NavLink = ({ href, children }: { href: string, children: React.ReactNode }) => {
+    const pathname = usePathname();
+    const isActive = pathname === href;
+    return (
+        <Link href={href} className={cn("text-sm font-light hover:underline", isActive && "font-semibold")}>
+            {children}
+        </Link>
+    )
+}
 
 export function Header() {
   const { user, loading } = useUser();
@@ -17,34 +28,31 @@ export function Header() {
   };
 
   return (
-    <header className="flex items-center justify-between p-6 bg-white/50 backdrop-blur-sm sticky top-0 z-50">
+    <header className="flex items-center justify-between p-6 bg-white/50 backdrop-blur-sm sticky top-0 z-50 border-b">
       <Link href="/" className="flex items-center space-x-2">
         <div className="h-2 w-2 rounded-full bg-black"></div>
         <div className="h-2 w-2 rounded-full bg-black"></div>
         <span className="font-headline font-bold">Synapse AI</span>
       </Link>
       <div className="flex items-center space-x-6">
-        <Link href="/help" className="text-sm font-light hover:underline">
+        <NavLink href="/help">
           HELP
-        </Link>
-        <Link href="/support" className="text-sm font-light hover:underline">
+        </NavLink>
+        <NavLink href="/support">
           SUPPORT
-        </Link>
+        </NavLink>
         {!loading &&
           (user ? (
             <>
-              <Link
-                href="/dashboard"
-                className="text-sm font-light hover:underline"
-              >
+              <NavLink href="/dashboard">
                 DASHBOARD
-              </Link>
-              <Link
-                href="/profile"
-                className="text-sm font-light hover:underline"
-              >
+              </NavLink>
+              <NavLink href="/documents">
+                DOCUMENTS
+              </NavLink>
+              <NavLink href="/profile">
                 PROFILE
-              </Link>
+              </NavLink>
               <Button
                 variant="ghost"
                 onClick={handleLogout}
