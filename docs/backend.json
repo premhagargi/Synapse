@@ -86,11 +86,11 @@
       },
       "description": "Stores public information about a user."
     },
-    "/users/{userId}/documents/{docId}": {
+    "/documents/{docId}": {
       "schema": {
         "$ref": "#/entities/Document"
       },
-      "description": "Stores metadata and content for documents uploaded by a user."
+      "description": "Stores documents uploaded by any user, partitioned by userId field."
     }
   }
 }

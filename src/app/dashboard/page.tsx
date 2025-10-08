@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useAuth } from '@/firebase';
 import {
@@ -8,6 +8,8 @@ import {
   setDoc,
   collection,
   serverTimestamp,
+  query,
+  where,
 } from 'firebase/firestore';
 import { Header } from '@/components/Header';
 import { Button } from '@/components/ui/button';
@@ -19,7 +21,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { useCollection } from '@/firebase/firestore/use-collection';
+import { useCollectionQuery } from '@/firebase/firestore/use-collection-query';
 import { analyzeDocument } from '@/ai/flows/analyze-document';
 import type { DocumentAnalysis } from '@/ai/schemas';
 import { useToast } from '@/hooks/use-toast';
@@ -30,6 +32,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface DocumentData {
   id: string;
+  userId: string;
   fileName: string;
   createdAt: any;
   analysis?: DocumentAnalysis;
@@ -49,10 +52,12 @@ export default function DashboardPage() {
   const [chatMessage, setChatMessage] = useState('');
   const [isChatting, setIsChatting] = useState(false);
 
-  const documentsPath = user ? `users/${user.uid}/documents` : undefined;
-  const { data: documents, loading: docsLoading } = useCollection<DocumentData>(
-    documentsPath
-  );
+  const documentsQuery = useMemo(() => {
+    if (!user) return undefined;
+    return query(collection(db, 'documents'), where('userId', '==', user.uid));
+  }, [db, user]);
+
+  const { data: documents, loading: docsLoading } = useCollectionQuery<DocumentData>(documentsQuery);
 
   useEffect(() => {
     if (!userLoading && !user) {
@@ -82,9 +87,10 @@ export default function DashboardPage() {
           fileContent,
           fileName: selectedFile.name,
         });
-
-        const newDocRef = doc(collection(db, `users/${user.uid}/documents`));
-        const newDocData = {
+        
+        const newDocRef = doc(collection(db, 'documents'));
+        const newDocData: Omit<DocumentData, 'id'> = {
+          userId: user.uid,
           fileName: selectedFile.name,
           createdAt: serverTimestamp(),
           analysis: analysisResult,
