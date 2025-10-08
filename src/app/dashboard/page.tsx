@@ -12,7 +12,6 @@ import {
 import { Header } from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Card,
   CardContent,
@@ -24,7 +23,7 @@ import { useCollection } from '@/firebase/firestore/use-collection';
 import { analyzeDocument } from '@/ai/flows/analyze-document';
 import type { DocumentAnalysis } from '@/ai/schemas';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Upload, FileText, Bot, User } from 'lucide-react';
+import { Loader2, Upload, FileText, Bot, User, BarChart, FileWarning, Files } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -33,6 +32,7 @@ interface DocumentData {
   fileName: string;
   createdAt: any;
   analysis?: DocumentAnalysis;
+  fileContent?: string;
 }
 
 export default function DashboardPage() {
@@ -77,7 +77,6 @@ export default function DashboardPage() {
       try {
         const fileContent = reader.result as string;
 
-        // Call Genkit flow
         const analysisResult = await analyzeDocument({
           fileContent,
           fileName: selectedFile.name,
@@ -88,7 +87,7 @@ export default function DashboardPage() {
           fileName: selectedFile.name,
           createdAt: serverTimestamp(),
           analysis: analysisResult,
-          fileContent: fileContent, // Storing base64 content
+          fileContent: fileContent,
         };
 
         setDoc(newDocRef, newDocData)
@@ -148,8 +147,6 @@ export default function DashboardPage() {
     setIsChatting(true);
 
     try {
-      // This would be a call to a Genkit flow for Q&A
-      // For now, we'll just simulate a response
       setTimeout(() => {
         const botResponse = "I'm still learning to answer questions. This feature is coming soon!";
         setChatHistory([...newHistory, { role: 'model' as const, message: botResponse }]);
@@ -166,6 +163,9 @@ export default function DashboardPage() {
     }
   }
 
+  const totalDocs = documents?.length || 0;
+  const complianceIssuesCount = documents?.reduce((acc, doc) => acc + (doc.analysis?.complianceIssues?.length || 0), 0) || 0;
+
 
   if (userLoading || !user) {
     return (
@@ -176,157 +176,209 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8f8f8] font-body text-black">
+    <div className="flex h-screen flex-col bg-gray-50/50">
       <Header />
-      <main className="grid grid-cols-1 md:grid-cols-3 gap-8 p-8">
-        {/* Left Column */}
-        <div className="md:col-span-1 space-y-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Upload Document</CardTitle>
-              <CardDescription>
-                Upload a PDF or Word doc for analysis.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Input
-                type="file"
-                onChange={handleFileChange}
-                accept=".pdf,.doc,.docx"
-                disabled={isUploading}
-              />
-              <Button
-                onClick={handleUpload}
-                disabled={!selectedFile || isUploading}
-                className="w-full"
-              >
-                {isUploading ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Upload className="mr-2 h-4 w-4" />
-                )}
-                {isUploading ? 'Analyzing...' : 'Upload & Analyze'}
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Document History</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {docsLoading ? (
-                <div className="space-y-2">
-                    <div className="h-10 w-full animate-pulse rounded-md bg-gray-200" />
-                    <div className="h-10 w-full animate-pulse rounded-md bg-gray-200" />
-                </div>
-              ) : (
-                <ul className="space-y-2">
-                  {documents?.map((doc) => (
-                    <li key={doc.id}>
-                      <button
-                        onClick={() => handleSelectDoc(doc)}
-                        className={`w-full text-left p-2 rounded-md flex items-center gap-2 ${selectedDoc?.id === doc.id ? 'bg-black/10' : 'hover:bg-black/5'}`}
-                      >
-                        <FileText className="h-4 w-4 shrink-0"/>
-                        <span className="truncate">{doc.fileName}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Right Column */}
-        <div className="md:col-span-2">
-          {selectedDoc ? (
-            <div className="space-y-8">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Analysis for: {selectedDoc.fileName}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {selectedDoc.analysis ? (
-                             <div className="space-y-6">
-                                <div>
-                                    <h3 className="font-bold text-lg mb-2">Summary</h3>
-                                    <p className="text-gray-700 whitespace-pre-wrap">{selectedDoc.analysis.summary}</p>
-                                </div>
-                                <div>
-                                    <h3 className="font-bold text-lg mb-2">Extracted Data</h3>
-                                    <pre className="p-4 bg-gray-100 rounded-md text-sm overflow-x-auto">
-                                        {JSON.stringify(selectedDoc.analysis.extractedData, null, 2)}
-                                    </pre>
-                                </div>
-                                 <div>
-                                    <h3 className="font-bold text-lg mb-2">Compliance Issues</h3>
-                                    {selectedDoc.analysis.complianceIssues.length > 0 ? (
-                                        <ul className="list-disc list-inside space-y-1 text-red-600">
-                                            {selectedDoc.analysis.complianceIssues.map((issue, i) => <li key={i}>{issue}</li>)}
-                                        </ul>
-                                    ) : <p className="text-green-600">No compliance issues found.</p>}
-                                </div>
-                            </div>
-                        ) : (
-                            <p>No analysis available for this document.</p>
-                        )}
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Chat about this document</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="h-64 overflow-y-auto space-y-4 p-4 border rounded-md mb-4 bg-white">
-                            {chatHistory.map((chat, i) => (
-                                <div key={i} className={`flex gap-2 items-start ${chat.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                    {chat.role === 'model' && <Bot className="h-6 w-6 shrink-0"/>}
-                                    <div className={`max-w-[80%] p-3 rounded-lg ${chat.role === 'user' ? 'bg-black text-white' : 'bg-gray-200'}`}>
-                                        <p className="text-sm">{chat.message}</p>
-                                    </div>
-                                    {chat.role === 'user' && <User className="h-6 w-6 shrink-0"/>}
-                                </div>
-                            ))}
-                            {isChatting && (
-                                <div className="flex gap-2 items-start justify-start">
-                                    <Bot className="h-6 w-6 shrink-0"/>
-                                    <div className="p-3 rounded-lg bg-gray-200">
-                                        <Loader2 className="h-5 w-5 animate-spin"/>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                        <form onSubmit={handleChatSubmit} className="flex gap-2">
-                            <Input 
-                                value={chatMessage}
-                                onChange={(e) => setChatMessage(e.target.value)}
-                                placeholder="Ask a question about the document..."
-                                disabled={isChatting}
-                            />
-                            <Button type="submit" disabled={isChatting || !chatMessage}>Send</Button>
-                        </form>
-                    </CardContent>
-                </Card>
-
+      <main className="flex-1 overflow-hidden p-4 md:p-8">
+        <div className="mx-auto max-w-7xl">
+            <div className="mb-8">
+                <h1 className="text-2xl font-semibold">Welcome back, {user.displayName || user.email}!</h1>
+                <p className="text-gray-600">Here's a summary of your documents and compliance status.</p>
             </div>
-          ) : (
-            <Card className="flex items-center justify-center h-full min-h-[60vh]">
-              <CardContent className="text-center">
-                <FileText className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-lg font-medium text-gray-900">
-                  No document selected
-                </h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  Upload a new document or select one from your history to begin.
-                </p>
-              </CardContent>
-            </Card>
-          )}
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium">Total Documents</CardTitle>
+                        <Files className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{totalDocs}</div>
+                        <p className="text-xs text-muted-foreground">documents uploaded</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium">Compliance Issues</CardTitle>
+                        <FileWarning className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-red-600">{complianceIssuesCount}</div>
+                        <p className="text-xs text-muted-foreground">issues flagged across all documents</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium">Processed</CardTitle>
+                        <BarChart className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{totalDocs}</div>
+                        <p className="text-xs text-muted-foreground">documents analyzed</p>
+                    </CardContent>
+                </Card>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Left Column */}
+                <div className="lg:col-span-1 space-y-8">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Upload New Document</CardTitle>
+                            <CardDescription>
+                                Upload a PDF or Word doc for analysis.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                        <Input
+                            type="file"
+                            onChange={handleFileChange}
+                            accept=".pdf,.doc,.docx"
+                            disabled={isUploading}
+                        />
+                        <Button
+                            onClick={handleUpload}
+                            disabled={!selectedFile || isUploading}
+                            className="w-full"
+                        >
+                            {isUploading ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                            <Upload className="mr-2 h-4 w-4" />
+                            )}
+                            {isUploading ? 'Analyzing...' : 'Upload & Analyze'}
+                        </Button>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                        <CardTitle>Document History</CardTitle>
+                        </CardHeader>
+                        <CardContent className="max-h-[300px] overflow-y-auto">
+                        {docsLoading ? (
+                            <div className="space-y-2">
+                                <div className="h-10 w-full animate-pulse rounded-md bg-gray-200" />
+                                <div className="h-10 w-full animate-pulse rounded-md bg-gray-200" />
+                            </div>
+                        ) : documents && documents.length > 0 ? (
+                            <ul className="space-y-2">
+                            {documents?.map((doc) => (
+                                <li key={doc.id}>
+                                <button
+                                    onClick={() => handleSelectDoc(doc)}
+                                    className={`w-full text-left p-2 rounded-md flex items-center gap-2 ${selectedDoc?.id === doc.id ? 'bg-black/10' : 'hover:bg-black/5'}`}
+                                >
+                                    <FileText className="h-4 w-4 shrink-0"/>
+                                    <span className="truncate">{doc.fileName}</span>
+                                </button>
+                                </li>
+                            ))}
+                            </ul>
+                        ) : (
+                            <p className="text-sm text-gray-500 text-center py-4">No documents uploaded yet.</p>
+                        )}
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Right Column */}
+                <div className="lg:col-span-2">
+                {selectedDoc ? (
+                    <div className="space-y-8">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Analysis for: {selectedDoc.fileName}</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-6">
+                                {selectedDoc.analysis ? (
+                                    <>
+                                        <div>
+                                            <h3 className="font-bold text-lg mb-2">Summary</h3>
+                                            <div className="text-gray-700 whitespace-pre-wrap p-4 bg-gray-100/50 rounded-md">{selectedDoc.analysis.summary}</div>
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold text-lg mb-2">Extracted Data</h3>
+                                            <pre className="p-4 bg-gray-100 rounded-md text-sm overflow-x-auto">
+                                                {JSON.stringify(selectedDoc.analysis.extractedData, null, 2)}
+                                            </pre>
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold text-lg mb-2">Compliance Issues</h3>
+                                            {selectedDoc.analysis.complianceIssues.length > 0 ? (
+                                                <ul className="list-disc list-inside space-y-1 text-red-600 bg-red-50 p-4 rounded-md">
+                                                    {selectedDoc.analysis.complianceIssues.map((issue, i) => <li key={i}>{issue}</li>)}
+                                                </ul>
+                                            ) : <p className="text-green-600 p-4 bg-green-50 rounded-md">No compliance issues found.</p>}
+                                        </div>
+                                    </>
+                                ) : (
+                                    <p>No analysis available for this document.</p>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Ask a Question</CardTitle>
+                                <CardDescription>Ask the AI about this document in plain English.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="h-64 overflow-y-auto space-y-4 p-4 border rounded-md mb-4 bg-white">
+                                    {chatHistory.length === 0 && (
+                                        <div className="flex flex-col items-center justify-center h-full text-center text-gray-500">
+                                            <Bot className="h-8 w-8 mb-2"/>
+                                            <p>Chat history will appear here.</p>
+                                        </div>
+                                    )}
+                                    {chatHistory.map((chat, i) => (
+                                        <div key={i} className={`flex gap-2 items-start ${chat.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                            {chat.role === 'model' && <Bot className="h-6 w-6 shrink-0"/>}
+                                            <div className={`max-w-[80%] p-3 rounded-lg ${chat.role === 'user' ? 'bg-black text-white' : 'bg-gray-200'}`}>
+                                                <p className="text-sm">{chat.message}</p>
+                                            </div>
+                                            {chat.role === 'user' && <User className="h-6 w-6 shrink-0"/>}
+                                        </div>
+                                    ))}
+                                    {isChatting && (
+                                        <div className="flex gap-2 items-start justify-start">
+                                            <Bot className="h-6 w-6 shrink-0"/>
+                                            <div className="p-3 rounded-lg bg-gray-200">
+                                                <Loader2 className="h-5 w-5 animate-spin"/>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                                <form onSubmit={handleChatSubmit} className="flex gap-2">
+                                    <Input 
+                                        value={chatMessage}
+                                        onChange={(e) => setChatMessage(e.target.value)}
+                                        placeholder="E.g., What is the termination date?"
+                                        disabled={isChatting}
+                                    />
+                                    <Button type="submit" disabled={isChatting || !chatMessage}>Send</Button>
+                                </form>
+                            </CardContent>
+                        </Card>
+                    </div>
+                ) : (
+                    <Card className="flex items-center justify-center h-full min-h-[60vh]">
+                    <CardContent className="text-center">
+                        <FileText className="mx-auto h-12 w-12 text-gray-400" />
+                        <h3 className="mt-2 text-lg font-medium text-gray-900">
+                        No document selected
+                        </h3>
+                        <p className="mt-1 text-sm text-gray-500">
+                        Upload a new document or select one from your history to begin.
+                        </p>
+                    </CardContent>
+                    </Card>
+                )}
+                </div>
+            </div>
         </div>
       </main>
     </div>
   );
 }
+
+    
