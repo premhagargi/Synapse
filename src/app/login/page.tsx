@@ -34,7 +34,7 @@ export default function LoginPage() {
               <Label htmlFor="password">Password</Label>
               <Input id="password" type="password" required />
             </div>
-            <Button type="submit" className="w-full rounded-full border-2 border-black px-8 py-6 text-black hover:bg-black hover:text-white">
+            <Button type="submit" variant="outline" className="w-full rounded-full border-2 border-black px-8 py-6 text-black hover:bg-black hover:text-white">
               Log In
             </Button>
           </form>

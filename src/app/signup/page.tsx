@@ -38,7 +38,7 @@ export default function SignupPage() {
               <Label htmlFor="confirm-password">Confirm Password</Label>
               <Input id="confirm-password" type="password" required />
             </div>
-            <Button type="submit" className="w-full rounded-full border-2 border-black px-8 py-6 text-black hover:bg-black hover:text-white">
+            <Button type="submit" variant="outline" className="w-full rounded-full border-2 border-black px-8 py-6 text-black hover:bg-black hover:text-white">
               Sign Up
             </Button>
           </form>
