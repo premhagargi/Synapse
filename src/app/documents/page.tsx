@@ -24,6 +24,10 @@ interface DocumentData {
   id: string;
   userId: string;
   fileName: string;
+  fileSize?: number;
+  fileType?: string;
+  fileUrl?: string;
+  storagePath?: string;
   createdAt: {
     seconds: number;
     nanoseconds: number;

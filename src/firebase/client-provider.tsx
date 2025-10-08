@@ -9,18 +9,23 @@ import {
   getFirestore,
 } from 'firebase/firestore';
 import {
+  type FirebaseStorage,
+  getStorage,
+} from 'firebase/storage';
+import {
   FirebaseApp,
   initializeApp,
 } from 'firebase/app';
 import { ReactNode, useEffect, useState } from 'react';
 
 import { FirebaseProvider } from '@/firebase/provider';
-import { firebaseConfig } from '@/firebase/config';
+import { firebaseConfig, useEmulators } from '@/firebase/config';
 
 type FirebaseInstances = {
   app: FirebaseApp;
   auth: Auth;
   db: Firestore;
+  storage: FirebaseStorage;
 };
 
 // Initializes and holds a single instance of the Firebase app.
@@ -40,7 +45,39 @@ export function FirebaseClientProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const auth = getAuth(firebaseApp);
     const db = getFirestore(firebaseApp);
-    setInstances({ app: firebaseApp, auth, db });
+    const storage = getStorage(firebaseApp);
+    
+    // Connect to emulators if in development mode
+    if (useEmulators) {
+      import('firebase/auth').then(({ connectAuthEmulator }) => {
+        try {
+          connectAuthEmulator(auth, 'http://localhost:9099');
+        } catch (error) {
+          // Emulator already connected or error connecting
+          console.log('Auth emulator connection:', error);
+        }
+      });
+      
+      import('firebase/firestore').then(({ connectFirestoreEmulator }) => {
+        try {
+          connectFirestoreEmulator(db, 'localhost', 8080);
+        } catch (error) {
+          // Emulator already connected or error connecting
+          console.log('Firestore emulator connection:', error);
+        }
+      });
+      
+      import('firebase/storage').then(({ connectStorageEmulator }) => {
+        try {
+          connectStorageEmulator(storage, 'localhost', 9199);
+        } catch (error) {
+          // Emulator already connected or error connecting
+          console.log('Storage emulator connection:', error);
+        }
+      });
+    }
+    
+    setInstances({ app: firebaseApp, auth, db, storage });
   }, []);
 
   if (!instances) {
@@ -53,6 +90,7 @@ export function FirebaseClientProvider({ children }: { children: ReactNode }) {
       app={instances.app}
       auth={instances.auth}
       db={instances.db}
+      storage={instances.storage}
     >
       {children}
     </FirebaseProvider>

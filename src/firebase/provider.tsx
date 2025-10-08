@@ -6,6 +6,9 @@ import {
 import {
   type Firestore,
 } from 'firebase/firestore';
+import {
+  type FirebaseStorage,
+} from 'firebase/storage';
 import { FirebaseApp } from 'firebase/app';
 import { createContext, ReactNode, useContext } from 'react';
 
@@ -13,6 +16,7 @@ type FirebaseContextValue = {
   app: FirebaseApp;
   auth: Auth;
   db: Firestore;
+  storage: FirebaseStorage;
 };
 
 const FirebaseContext = createContext<FirebaseContextValue | null>(null);
@@ -44,6 +48,10 @@ export function useFirebaseApp() {
 
 export function useAuth() {
   return useFirebase().auth;
+}
+
+export function useStorage() {
+  return useFirebase().storage;
 }
 
 export function useFirestore() {

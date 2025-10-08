@@ -14,8 +14,8 @@
   # a firebase.json file is written into the user's directory
   services.firebase.emulators = {
     detect = true;
-    projectId = "demo-app";
-    services = ["auth" "firestore"];
+    projectId = "synapse-ai-lw6m8";
+    services = ["auth" "firestore" "storage"];
   };
   idx = {
     # Search for the extensions you want on https://open-vsx.org/ and use "publisher.id"

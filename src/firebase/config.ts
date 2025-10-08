@@ -7,3 +7,6 @@ export const firebaseConfig = {
   messagingSenderId: "153763702936",
   appId: "1:153763702936:web:292377c05c814940d408ed"
 };
+
+// Check if we're in development and should use emulators
+export const useEmulators = process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_USE_EMULATORS === 'true';

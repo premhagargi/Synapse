@@ -25,9 +25,13 @@ interface DocumentData {
   id: string;
   userId: string;
   fileName: string;
+  fileSize?: number;
+  fileType?: string;
+  fileUrl?: string;
+  storagePath?: string;
   createdAt: any;
   analysis?: DocumentAnalysis;
-  fileContent?: string;
+  fileContent?: string; // Keep for backward compatibility
 }
 
 export default function AnalysisPage({ params }: { params: { id: string } }) {

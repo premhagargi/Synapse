@@ -2,13 +2,18 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser, useFirestore } from '@/firebase';
+import { useUser, useFirestore, useStorage } from '@/firebase';
 import {
   doc,
   setDoc,
   collection,
   serverTimestamp,
 } from 'firebase/firestore';
+import {
+  ref,
+  uploadBytes,
+  getDownloadURL,
+} from 'firebase/storage';
 import { Header } from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,6 +35,7 @@ export default function UploadDocumentPage() {
   const { user, loading: userLoading } = useUser();
   const router = useRouter();
   const db = useFirestore();
+  const storage = useStorage();
   const { toast } = useToast();
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -53,63 +59,101 @@ export default function UploadDocumentPage() {
     setIsUploading(true);
     toast({ title: 'Starting analysis...', description: 'Your document is being uploaded and analyzed. This may take a moment.' });
 
-    const reader = new FileReader();
-    reader.readAsDataURL(selectedFile);
-    reader.onload = async () => {
-      try {
-        const fileContent = reader.result as string;
-
-        const analysisResult = await analyzeDocument({
-          fileContent,
-          fileName: selectedFile.name,
-        });
-        
-        const newDocRef = doc(collection(db, 'documents'));
-        const newDocData = {
-          userId: user.uid,
-          fileName: selectedFile.name,
-          createdAt: serverTimestamp(),
-          analysis: analysisResult,
-          fileContent: fileContent, // Storing for chat, could be moved to Storage
-        };
-
-        setDoc(newDocRef, newDocData)
-          .then(() => {
-            toast({
-              title: 'Analysis Complete!',
-              description: `${selectedFile.name} has been processed.`,
-            });
-            router.push(`/documents/${newDocRef.id}`);
-          })
-          .catch((serverError) => {
-            const permissionError = new FirestorePermissionError({
-              path: newDocRef.path,
-              operation: 'create',
-              requestResourceData: newDocData,
-            });
-            errorEmitter.emit('permission-error', permissionError);
-            setIsUploading(false);
-          });
-
-      } catch (error) {
-        console.error('Analysis failed:', error);
-        toast({
-          variant: 'destructive',
-          title: 'Analysis Failed',
-          description: 'Could not analyze the document. Please try again.',
-        });
-        setIsUploading(false);
-      }
-    };
-    reader.onerror = (error) => {
-      console.error('File reading error:', error);
+    // Double-check authentication state before proceeding
+    if (!user.uid) {
       toast({
         variant: 'destructive',
-        title: 'File Error',
-        description: 'Could not read the selected file.',
+        title: 'Authentication Error',
+        description: 'Please log in again to upload documents.',
       });
       setIsUploading(false);
-    };
+      return;
+    }
+
+    try {
+      // First, upload the file to Firebase Storage
+      const fileRef = ref(storage, `documents/${user.uid}/${Date.now()}-${selectedFile.name}`);
+      
+      toast({
+        title: 'Uploading file...',
+        description: 'Uploading your document to secure storage.',
+      });
+      
+      const uploadSnapshot = await uploadBytes(fileRef, selectedFile);
+      const downloadURL = await getDownloadURL(uploadSnapshot.ref);
+      
+      // Read file content for analysis (keep as base64 for now, but this could be optimized)
+      const reader = new FileReader();
+      const fileContentPromise = new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(selectedFile);
+      });
+      
+      const fileContent = await fileContentPromise;
+      
+      toast({
+        title: 'Analyzing document...',
+        description: 'AI is analyzing your document content.',
+      });
+
+      const analysisResult = await analyzeDocument({
+        fileContent,
+        fileName: selectedFile.name,
+      });
+      
+      // Create Firestore document with file reference instead of content
+      const newDocRef = doc(collection(db, 'documents'));
+      const newDocData = {
+        userId: user.uid,
+        fileName: selectedFile.name,
+        fileSize: selectedFile.size,
+        fileType: selectedFile.type,
+        fileUrl: downloadURL, // Reference to file in Storage
+        storagePath: fileRef.fullPath, // Storage path for reference
+        createdAt: serverTimestamp(),
+        analysis: analysisResult,
+        // Note: fileContent removed to avoid size limit issues
+        // File content is now stored in Firebase Storage
+      };
+
+      // Add a small delay to ensure authentication state is fully synchronized
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      await setDoc(newDocRef, newDocData);
+      
+      toast({
+        title: 'Analysis Complete!',
+        description: `${selectedFile.name} has been processed and saved.`,
+      });
+      
+      router.push(`/documents/${newDocRef.id}`);
+
+    } catch (error: any) {
+      console.error('Upload or analysis failed:', error);
+      
+      if (error.code === 'permission-denied') {
+        const permissionError = new FirestorePermissionError({
+          path: 'documents',
+          operation: 'create',
+          requestResourceData: { fileName: selectedFile.name },
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      } else if (error.code === 'storage/unauthorized') {
+        toast({
+          variant: 'destructive',
+          title: 'Storage Permission Denied',
+          description: 'You do not have permission to upload files.',
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Upload Failed',
+          description: `Failed to upload document: ${error.message || 'Unknown error'}`,
+        });
+      }
+      setIsUploading(false);
+    }
   };
 
   if (userLoading || !user) {
