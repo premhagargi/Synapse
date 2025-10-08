@@ -1,32 +1,45 @@
 /**
  * @file Firestore Security Rules
- * @description This ruleset enforces a strict user-ownership model for data access. Each user can only access their own data.
+ * @description This ruleset enforces a strict user-ownership model for data access.
  *
  * Data Structure:
- * - /users/{userId}: Stores public user profile information.
- * - /users/{userId}/documents/{docId}: Stores individual documents uploaded by each user.
+ * - /users/{userId}: Stores public user profiles. Each user can only read and write their own profile.
+ * - /users/{userId}/documents/{docId}: Stores documents uploaded by each user. Only the owner user can manage their documents.
  *
  * Key Security Decisions:
- * - Users can only read and write their own user document.
- * - Users can only list and manage documents within their own /users/{userId}/documents collection.
- * - Listing all users is disallowed.
- * - Data validation is minimal for prototyping but should be expanded in production. Only critical relational fields are validated.
+ * - Users can only create their own user document.
+ * - Users can only read their own user document.
+ * - Users can only manage (create, read, update, delete) documents they own.
+ * - Listing of users is disallowed to protect user privacy.
  *
  * Denormalization for Authorization:
- * - Each document in `/users/{userId}/documents/{docId}` contains a `userId` field, enabling rules to quickly verify ownership without additional reads.
+ *  - The `Document` entity requires a `userId` property which is used to enforce ownership.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Controls access to user profiles.
+     * @description Controls access to user profile documents.
      * @path /users/{userId}
-     * @allow (get, create, update, delete) if the user is the owner of the profile.
-     * @deny (get, create, update, delete) if the user is not the owner of the profile.
-     * @principle Enforces user-ownership for profile data.
+     * @allow (create) - User 'abc' can create their own profile with matching uid.
+     *    - Auth: {uid: 'abc'}
+     *    - Request.resource.data: {uid: 'abc', email: 'test@example.com'}
+     * @allow (get) - User 'abc' can read their own profile.
+     *    - Auth: {uid: 'abc'}
+     * @allow (update) - User 'abc' can update their own profile.
+     *    - Auth: {uid: 'abc'}
+     * @allow (delete) - User 'abc' can delete their own profile.
+     *    - Auth: {uid: 'abc'}
+     * @deny (create) - User 'def' cannot create a profile for user 'abc'.
+     *    - Auth: {uid: 'def'}
+     *    - Request.resource.data: {uid: 'abc', email: 'test@example.com'}
+     * @deny (get) - User 'def' cannot read user 'abc's profile.
+     *    - Auth: {uid: 'def'}
+     * @principle Enforces document ownership for writes, restricts access to a user's own profile, and validates relational integrity.
      */
     match /users/{userId} {
+      //Utility function
       function isSignedIn() {
         return request.auth != null;
       }
@@ -35,21 +48,40 @@ service cloud.firestore {
         return request.auth.uid == userId;
       }
 
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.uid == userId;
       allow get: if isSignedIn() && isOwner(userId);
-      allow list: if false; // Prevent listing all users.
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isOwner(userId);
-      allow delete: if isSignedIn() && isOwner(userId);
+      allow list: if false;
+      allow update: if isExistingOwner(userId) && request.resource.data.uid == resource.data.uid;
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Controls access to user documents.
+     * @description Controls access to documents uploaded by a user.
      * @path /users/{userId}/documents/{docId}
-     * @allow (create, get, list, update, delete) if the user is the owner of the document.
-     * @deny (create, get, list, update, delete) if the user is not the owner of the document.
-     * @principle Enforces document ownership for all operations.
+     * @allow (create) - User 'abc' can create a document in their own folder.
+     *    - Auth: {uid: 'abc'}
+     *    - Request.resource.data: {userId: 'abc', id: 'doc1'}
+     * @allow (get) - User 'abc' can read a document in their own folder.
+     *    - Auth: {uid: 'abc'}
+     * @allow (list) - User 'abc' can list documents in their own folder.
+     *    - Auth: {uid: 'abc'}
+     * @allow (update) - User 'abc' can update a document in their own folder.
+     *    - Auth: {uid: 'abc'}
+     * @allow (delete) - User 'abc' can delete a document in their own folder.
+     *    - Auth: {uid: 'abc'}
+     * @deny (create) - User 'def' cannot create a document in user 'abc's folder.
+     *    - Auth: {uid: 'def'}
+     *    - Request.resource.data: {userId: 'abc', id: 'doc1'}
+     * @deny (get) - User 'def' cannot read a document in user 'abc's folder.
+     *    - Auth: {uid: 'def'}
+     * @principle Enforces document ownership for writes and restricts access to a user's own data tree.
      */
     match /users/{userId}/documents/{docId} {
+       //Utility function
       function isSignedIn() {
         return request.auth != null;
       }
@@ -58,11 +90,15 @@ service cloud.firestore {
         return request.auth.uid == userId;
       }
 
+       function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.userId == userId && request.resource.data.id == docId;
       allow get: if isSignedIn() && isOwner(userId);
       allow list: if isSignedIn() && isOwner(userId);
-      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isSignedIn() && isOwner(userId) && request.resource.data.userId == resource.data.userId;
-      allow delete: if isSignedIn() && isOwner(userId);
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
     }
   }
 }
