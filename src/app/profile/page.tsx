@@ -1,7 +1,7 @@
 'use client';
 
 import { useUser } from '@/firebase';
-import { Header } from '@/components/Header';
+import { DashboardSidebar } from '@/components/DashboardSidebar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -37,9 +37,10 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50/50">
-      <Header />
-      <main className="container mx-auto max-w-2xl py-12 px-4">
+    <div className="flex h-screen bg-gray-50/50">
+      <DashboardSidebar />
+      <main className="flex-1 overflow-y-auto p-4 md:p-8">
+        <div className="mx-auto max-w-2xl">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-light tracking-tight">Profile</h1>
           <p className="mt-2 text-lg text-gray-600">
@@ -72,6 +73,7 @@ export default function ProfilePage() {
             </Button>
           </CardContent>
         </Card>
+        </div>
       </main>
     </div>
   );

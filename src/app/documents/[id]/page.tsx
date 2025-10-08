@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useUser, useFirestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import { Header } from '@/components/Header';
+import { DashboardSidebar } from '@/components/DashboardSidebar';
+import { BackButton } from '@/components/BackButton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -16,6 +17,7 @@ import {
 import { useDoc } from '@/firebase/firestore/use-doc';
 import type { DocumentAnalysis } from '@/ai/schemas';
 import { useToast } from '@/hooks/use-toast';
+import { useChunkedFile } from '@/hooks/use-chunked-file';
 import { Loader2, Bot, User, FileWarning } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -27,11 +29,10 @@ interface DocumentData {
   fileName: string;
   fileSize?: number;
   fileType?: string;
-  fileUrl?: string;
-  storagePath?: string;
+  chunkCount?: number;
   createdAt: any;
   analysis?: DocumentAnalysis;
-  fileContent?: string; // Keep for backward compatibility
+  fileContent?: string; // For small files or backward compatibility
 }
 
 export default function AnalysisPage({ params }: { params: { id: string } }) {
@@ -40,6 +41,12 @@ export default function AnalysisPage({ params }: { params: { id: string } }) {
   
   const docPath = params.id ? `documents/${params.id}` : '';
   const { data: selectedDoc, loading: docLoading } = useDoc<DocumentData>(docPath);
+  
+  // Handle chunked files
+  const { fileContent: chunkedFileContent, loading: chunkLoading, error: chunkError } = useChunkedFile(
+    params.id, 
+    selectedDoc?.chunkCount || 0
+  );
 
   const [chatHistory, setChatHistory] = useState<{role: 'user' | 'model', message: string}[]>([]);
   const [chatMessage, setChatMessage] = useState('');
@@ -72,6 +79,14 @@ export default function AnalysisPage({ params }: { params: { id: string } }) {
     }
   }
 
+  // Get the correct file content (from chunks or direct storage)
+  const getFileContent = () => {
+    if (selectedDoc?.chunkCount && selectedDoc.chunkCount > 0) {
+      return chunkedFileContent;
+    }
+    return selectedDoc?.fileContent || '';
+  };
+
   // Security check: ensure the user viewing the doc is the one who owns it.
   useEffect(() => {
     if (!userLoading && !docLoading && selectedDoc && user && selectedDoc.userId !== user.uid) {
@@ -83,8 +98,19 @@ export default function AnalysisPage({ params }: { params: { id: string } }) {
     }
   }, [user, selectedDoc, userLoading, docLoading, toast]);
 
+  // Show chunk loading error
+  useEffect(() => {
+    if (chunkError) {
+      toast({
+        variant: 'destructive',
+        title: 'File Loading Error',
+        description: 'Could not load file content. Please try refreshing the page.',
+      });
+    }
+  }, [chunkError, toast]);
 
-  if (userLoading || docLoading || !selectedDoc) {
+
+  if (userLoading || docLoading || !selectedDoc || (selectedDoc.chunkCount && selectedDoc.chunkCount > 0 && chunkLoading)) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -107,11 +133,12 @@ export default function AnalysisPage({ params }: { params: { id: string } }) {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-gray-50/50">
-      <Header />
+    <div className="flex h-screen bg-gray-50/50">
+      <DashboardSidebar />
       <main className="flex-1 overflow-y-hidden">
         <ScrollArea className="h-full">
             <div className="mx-auto max-w-7xl p-4 md:p-8">
+              <BackButton href="/documents">Back to Documents</BackButton>
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                   <div className="lg:col-span-2 space-y-8">
                       <Card>

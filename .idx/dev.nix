@@ -15,7 +15,7 @@
   services.firebase.emulators = {
     detect = true;
     projectId = "synapse-ai-lw6m8";
-    services = ["auth" "firestore" "storage"];
+    services = ["auth" "firestore"];
   };
   idx = {
     # Search for the extensions you want on https://open-vsx.org/ and use "publisher.id"

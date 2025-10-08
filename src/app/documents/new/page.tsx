@@ -2,19 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser, useFirestore, useStorage } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
 import {
   doc,
   setDoc,
   collection,
   serverTimestamp,
 } from 'firebase/firestore';
-import {
-  ref,
-  uploadBytes,
-  getDownloadURL,
-} from 'firebase/storage';
-import { Header } from '@/components/Header';
+// Removed Firebase Storage imports - using chunking instead
+import { DashboardSidebar } from '@/components/DashboardSidebar';
+import { BackButton } from '@/components/BackButton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -29,13 +26,13 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Upload } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { chunkBase64, compressFile, formatFileSize, calculateChunkCount } from '@/lib/file-utils';
 import Link from 'next/link';
 
 export default function UploadDocumentPage() {
   const { user, loading: userLoading } = useUser();
   const router = useRouter();
   const db = useFirestore();
-  const storage = useStorage();
   const { toast } = useToast();
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -71,23 +68,43 @@ export default function UploadDocumentPage() {
     }
 
     try {
-      // First, upload the file to Firebase Storage
-      const fileRef = ref(storage, `documents/${user.uid}/${Date.now()}-${selectedFile.name}`);
-      
+      // Check file size and warn if too large
+      const estimatedChunks = calculateChunkCount(selectedFile.size);
+      if (estimatedChunks > 50) { // More than ~40MB file
+        toast({
+          variant: 'destructive',
+          title: 'File Too Large',
+          description: `This file is very large (${formatFileSize(selectedFile.size)}). Consider using a smaller file or compressing it.`,
+        });
+        setIsUploading(false);
+        return;
+      }
+
       toast({
-        title: 'Uploading file...',
-        description: 'Uploading your document to secure storage.',
+        title: 'Processing file...',
+        description: `Preparing ${selectedFile.name} for analysis.`,
       });
-      
-      const uploadSnapshot = await uploadBytes(fileRef, selectedFile);
-      const downloadURL = await getDownloadURL(uploadSnapshot.ref);
-      
-      // Read file content for analysis (keep as base64 for now, but this could be optimized)
+
+      // Try to compress the file first (for images)
+      let processedFile = selectedFile;
+      if (selectedFile.type.startsWith('image/')) {
+        try {
+          processedFile = await compressFile(selectedFile, 0.8);
+          toast({
+            title: 'File compressed',
+            description: `Reduced from ${formatFileSize(selectedFile.size)} to ${formatFileSize(processedFile.size)}`,
+          });
+        } catch (error) {
+          console.log('Compression failed, using original file:', error);
+        }
+      }
+
+      // Read file content for analysis
       const reader = new FileReader();
       const fileContentPromise = new Promise<string>((resolve, reject) => {
         reader.onload = () => resolve(reader.result as string);
         reader.onerror = reject;
-        reader.readAsDataURL(selectedFile);
+        reader.readAsDataURL(processedFile);
       });
       
       const fileContent = await fileContentPromise;
@@ -102,19 +119,48 @@ export default function UploadDocumentPage() {
         fileName: selectedFile.name,
       });
       
-      // Create Firestore document with file reference instead of content
+      // Create main document
       const newDocRef = doc(collection(db, 'documents'));
+      const documentId = newDocRef.id;
+      
+      // Store file content in chunks if needed
+      let fileContentChunks: string[] = [];
+      let chunkCount = 0;
+      
+      if (fileContent.length > 800000) { // If larger than 800KB
+        toast({
+          title: 'Storing large file...',
+          description: 'Splitting file into chunks for storage.',
+        });
+        
+        fileContentChunks = chunkBase64(fileContent);
+        chunkCount = fileContentChunks.length;
+        
+        // Store each chunk as a separate document
+        for (let i = 0; i < fileContentChunks.length; i++) {
+          const chunkRef = doc(collection(db, 'documentChunks'));
+          await setDoc(chunkRef, {
+            documentId,
+            chunkIndex: i,
+            totalChunks: fileContentChunks.length,
+            content: fileContentChunks[i],
+            userId: user.uid,
+            createdAt: serverTimestamp(),
+          });
+        }
+      }
+      
+      // Create main document
       const newDocData = {
         userId: user.uid,
         fileName: selectedFile.name,
-        fileSize: selectedFile.size,
+        fileSize: processedFile.size,
         fileType: selectedFile.type,
-        fileUrl: downloadURL, // Reference to file in Storage
-        storagePath: fileRef.fullPath, // Storage path for reference
+        chunkCount: chunkCount,
         createdAt: serverTimestamp(),
         analysis: analysisResult,
-        // Note: fileContent removed to avoid size limit issues
-        // File content is now stored in Firebase Storage
+        // Only store content directly if it's small enough
+        fileContent: fileContent.length <= 800000 ? fileContent : undefined,
       };
 
       // Add a small delay to ensure authentication state is fully synchronized
@@ -139,12 +185,6 @@ export default function UploadDocumentPage() {
           requestResourceData: { fileName: selectedFile.name },
         });
         errorEmitter.emit('permission-error', permissionError);
-      } else if (error.code === 'storage/unauthorized') {
-        toast({
-          variant: 'destructive',
-          title: 'Storage Permission Denied',
-          description: 'You do not have permission to upload files.',
-        });
       } else {
         toast({
           variant: 'destructive',
@@ -165,11 +205,12 @@ export default function UploadDocumentPage() {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-gray-50/50">
-      <Header />
+    <div className="flex h-screen bg-gray-50/50">
+      <DashboardSidebar />
       <main className="flex-1 overflow-y-auto p-4 md:p-8">
         <div className="mx-auto max-w-2xl">
-        <Card>
+          <BackButton href="/documents">Back to Documents</BackButton>
+          <Card>
             <CardHeader>
                 <CardTitle>Upload New Document</CardTitle>
                 <CardDescription>
@@ -196,9 +237,6 @@ export default function UploadDocumentPage() {
                         <Upload className="mr-2 h-4 w-4" />
                         )}
                         {isUploading ? 'Analyzing...' : 'Upload & Analyze'}
-                    </Button>
-                    <Button variant="outline" className="w-full" asChild>
-                        <Link href="/documents">Cancel</Link>
                     </Button>
                 </div>
             </CardContent>

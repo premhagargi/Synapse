@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
-import { Header } from '@/components/Header';
+import { DashboardSidebar } from '@/components/DashboardSidebar';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -24,10 +24,10 @@ interface DocumentData {
   fileName: string;
   fileSize?: number;
   fileType?: string;
-  fileUrl?: string;
-  storagePath?: string;
+  chunkCount?: number;
   createdAt: any;
   analysis?: DocumentAnalysis;
+  fileContent?: string; // For small files
 }
 
 export default function DashboardPage() {
@@ -61,8 +61,8 @@ export default function DashboardPage() {
 
 
   return (
-    <div className="flex h-screen flex-col bg-gray-50/50">
-      <Header />
+    <div className="flex h-screen bg-gray-50/50">
+      <DashboardSidebar />
       <main className="flex-1 overflow-y-auto p-4 md:p-8">
         <div className="mx-auto max-w-7xl">
           <div className="mb-8">

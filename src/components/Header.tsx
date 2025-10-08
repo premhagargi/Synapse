@@ -52,7 +52,11 @@ export function Header() {
         {!loading &&
           (user ? (
             <>
-              {!isLandingPage && (
+              {isLandingPage ? (
+                <NavLink href="/dashboard">
+                  GO TO DASHBOARD
+                </NavLink>
+              ) : (
                 <>
                   <NavLink href="/dashboard">
                     DASHBOARD

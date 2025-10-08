@@ -73,5 +73,27 @@ service cloud.firestore {
       allow update: if isSignedIn() && isOwner(resource.data.userId) && resource != null;
       allow delete: if isSignedIn() && isOwner(resource.data.userId) && resource != null;
     }
+
+    /**
+     * @description Controls access to document chunks for large files.
+     * @path /documentChunks/{chunkId}
+     * @allow (create) - User can create chunks for their documents.
+     * @allow (get, list) - User can read chunks for their documents.
+     * @allow (update, delete) - User can modify/delete chunks for their documents.
+     * @principle Chunks are tied to documents and follow the same ownership rules.
+     */
+    match /documentChunks/{chunkId} {
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+      function isSignedIn() {
+        return request.auth != null;
+      }
+      allow get: if isSignedIn() && isOwner(resource.data.userId);
+      allow list: if isSignedIn() && isOwner(resource.data.userId);
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn() && isOwner(resource.data.userId) && resource != null;
+      allow delete: if isSignedIn() && isOwner(resource.data.userId) && resource != null;
+    }
   }
 }
