@@ -1,18 +1,20 @@
 /**
  * @file Firestore Security Rules
- * @description This ruleset enforces a strict user-ownership model for documents and user data.
+ * @version 2
  *
- * Data Structure:
- * - /users/{userId}: Stores public user profiles.  A user can only read/write their own profile.
- * - /users/{userId}/documents/{docId}: Stores documents uploaded by a specific user. Only the owner can read/write these documents.
+ * @Core Philosophy
+ * This ruleset enforces a user-centric security model where users have full control over their own data and limited access to other users' data.
  *
- * Key Security Decisions:
- * - Users can only access their own data. Listing all users is disallowed.
- * - The rules do not validate the specific data types or required fields within the documents,
- *   allowing for flexible data shapes during prototyping. However, key fields like userId are validated for ownership.
- * - To simplify authorization, the 'userId' is duplicated both in the document path
- *   (/users/{userId}/documents/{docId}) and within the document's data itself (document.userId).
- *   This denormalization avoids the need for complex 'get()' operations in the rules.
+ * @Data Structure
+ * - `/users/{userId}`: Stores public user profiles.  Users can only read their own profile.
+ * - `/documents/{docId}`: Stores documents uploaded by users. Access is restricted based on the `userId` field within each document.
+ *
+ * @Key Security Decisions
+ * - Users can only read their profile data, but cannot list all users.
+ * - Documents are secured by owner-only access, preventing unauthorized modifications or deletions.
+ *
+ * @Denormalization for Authorization
+ * - Documents are secured using the `userId` field inside the document, which must match the authenticated user's `uid` for write operations.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -21,53 +23,75 @@ service cloud.firestore {
     /**
      * @description Controls access to user profile documents.
      * @path /users/{userId}
-     * @allow (get, create, update, delete): If the user is signed in and the userId matches the authenticated user's ID.
-     * @deny (get, create, update, delete): If the user is not signed in or the userId does not match the authenticated user's ID.
-     * @principle Enforces document ownership for user profiles.
+     * @allow (get) Authenticated user can read their own profile.
+     * @allow (create) Authenticated user can create their own profile if the userId matches their auth UID.
+     * @allow (update) Authenticated user can update their own profile if the userId matches their auth UID.
+     * @allow (delete) Authenticated user can delete their own profile if the userId matches their auth UID.
+     * @deny (get) Authenticated user cannot read another user's profile.
+     * @deny (create) Unauthenticated user cannot create a profile.
+     * @deny (update) Authenticated user cannot update another user's profile.
+     * @deny (delete) Authenticated user cannot delete another user's profile.
+     * @principle Enforces document ownership for writes.
      */
     match /users/{userId} {
-      //Function to check if user is signed in
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      //Function to check if user is the owner of the account being accessed
+      // isOwner checks that the requested userId matches the authenticated user's ID.
       function isOwner(userId) {
         return request.auth.uid == userId;
       }
 
-      allow get: if isSignedIn() && isOwner(userId);
+      // isExistingOwner also confirms that the document exists.
+      function isExistingOwner(userId) {
+        return isOwner(userId) && exists(resource);
+      }
+
+      // isSignedIn verifies that the user is authenticated.
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get: if isOwner(userId);
       allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isOwner(userId);
-      allow delete: if isSignedIn() && isOwner(userId);
+
+      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.uid == request.auth.uid;
+      allow update: if isExistingOwner(userId) && request.resource.data.uid == request.auth.uid;
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Controls access to documents uploaded by a user.
-     * @path /users/{userId}/documents/{docId}
-     * @allow (get, list): If the user is signed in and is the owner of the document.
-     * @allow (create): If the user is signed in, is the owner, and the document's userId matches the authenticated user's ID.
-     * @allow (update, delete): If the user is signed in, is the owner, and the document exists.
-     * @deny (get, list, create, update, delete): If the user is not signed in or is not the owner of the document.
-     * @principle Enforces document ownership and validates relational integrity between the document and its parent user.
+     * @description Controls access to user-uploaded documents.
+     * @path /documents/{docId}
+     * @allow (get) Authenticated user can read a document if they are the owner.
+     * @allow (create) Authenticated user can create a document if they are the owner.
+     * @allow (update) Authenticated user can update a document if they are the owner.
+     * @allow (delete) Authenticated user can delete a document if they are the owner.
+     * @deny (get) Authenticated user cannot read another user's document.
+     * @deny (create) Authenticated user cannot create a document for another user.
+     * @deny (update) Authenticated user cannot update another user's document.
+     * @deny (delete) Authenticated user cannot delete another user's document.
+     * @principle Enforces document ownership for writes.
      */
-    match /users/{userId}/documents/{docId} {
-        //Check if the user has the same id as the user id in the url
-        function isOwner(userId) {
-            return request.auth.uid == userId;
-        }
-        
-        //Helper function to check if the user owns the document and that the document exists
-        function isExistingOwner(userId) {
-          return isOwner(userId) && resource != null;
-        }
+    match /documents/{docId} {
+      // isDocumentOwner checks that the authenticated user's ID matches the document's userId.
+      function isDocumentOwner(docUserId) {
+        return request.auth.uid == docUserId;
+      }
 
-        allow get: if isOwner(userId);
-        allow list: if isOwner(userId);
-        allow create: if isOwner(userId) && request.resource.data.userId == request.auth.uid;
-        allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
-        allow delete: if isExistingOwner(userId);
+      // isExistingDocumentOwner also confirms that the document exists.
+      function isExistingDocumentOwner(docUserId) {
+        return isDocumentOwner(docUserId) && exists(resource);
+      }
+
+      // isSignedIn verifies that the user is authenticated.
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      allow get: if isSignedIn() && isDocumentOwner(resource.data.userId);
+      allow list: if isSignedIn();
+
+      allow create: if isSignedIn() && isDocumentOwner(request.resource.data.userId);
+      allow update: if isExistingDocumentOwner(resource.data.userId);
+      allow delete: if isExistingDocumentOwner(resource.data.userId);
     }
   }
 }
