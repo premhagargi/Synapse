@@ -21,7 +21,8 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useCollection } from '@/firebase/firestore/use-collection';
-import { analyzeDocument, type DocumentAnalysis } from '@/ai/flows/analyze-document';
+import { analyzeDocument } from '@/ai/flows/analyze-document';
+import type { DocumentAnalysis } from '@/ai/schemas';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Upload, FileText, Bot, User } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -50,7 +51,7 @@ export default function DashboardPage() {
   // Memoize the path to avoid re-renders
   const documentsPath = user ? `users/${user.uid}/documents` : undefined;
   const { data: documents, loading: docsLoading } = useCollection<DocumentData>(
-    documentsPath
+    documentsPath!
   );
 
   useEffect(() => {
