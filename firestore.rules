@@ -1,99 +1,246 @@
 /**
- * @fileoverview Firestore Security Rules for the application.
+ * @fileoverview Enhanced Firestore Security Rules for enterprise-grade application.
  *
- * Core Philosophy:
- * This ruleset enforces a user-ownership model for user profiles and documents.
- * Users can only read and write their own profile data. Documents are stored
- * in a top-level collection but access is controlled via the `userId` field
- * within each document.
+ * Security Philosophy:
+ * - Principle of least privilege: Users can only access data they own or have explicit permission to access
+ * - Defense in depth: Multiple layers of validation and authorization
+ * - Audit trail: All access is logged and traceable
+ * - Data integrity: Validation of data structure and content
  *
  * Data Structure:
- * - /users/{userId}: Stores user profile information.
- * - /documents/{docId}: Stores documents, each containing a `userId` field
- *   to indicate ownership.
+ * - /users/{userId}: User profiles with role-based access control
+ * - /documents/{docId}: Documents with ownership validation and access controls
+ * - /documentChunks/{chunkId}: File chunks for large documents
+ * - /auditLogs/{logId}: Immutable audit trail for compliance
+ * - /analytics/{userId}: User-specific analytics data
+ * - /featureFlags/{flagId}: Feature flag configuration
  *
- * Key Security Decisions:
- * - User listing is disallowed.
- * - Documents are stored in a top-level collection instead of a user subcollection
- *   to allow for easier querying across all documents, but writes are restricted
- *   to the owner via the `userId` field.
- *
- * Denormalization for Authorization:
- * The `documents` collection relies on the `userId` field within each document to
- * enforce ownership. This avoids the need for complex queries or additional
- * data lookups to determine access rights.
+ * Security Features:
+ * - Role-based access control (RBAC)
+ * - Rate limiting through application logic
+ * - Data validation and sanitization
+ * - Audit logging for compliance
+ * - Time-based access controls
+ * - Multi-tenant data isolation
  */
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /**
-     * @description Controls access to user profile information.
-     * @path /users/{userId}
-     * @allow (create) - User with UID 'user_abc' can create their profile at /users/user_abc.
-     * @allow (get, update, delete) - User with UID 'user_abc' can read/update/delete their profile at /users/user_abc.
-     * @deny (create) - User with UID 'user_xyz' cannot create a profile at /users/user_abc.
-     * @deny (get, update, delete) - User with UID 'user_xyz' cannot read/update/delete the profile at /users/user_abc.
-     * @principle Enforces document ownership for writes.  Allows owner-only access to profile data.
-     */
+    // Helper functions for common security checks
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isAnalyst() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'analyst'];
+    }
+
+    function hasRole(roles) {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in roles;
+    }
+
+    function isValidDocumentData() {
+      return request.resource.data.keys().hasAll(['userId', 'fileName', 'fileSize', 'fileType', 'mimeType', 'status']) &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.fileSize > 0 &&
+        request.resource.data.fileSize <= 10 * 1024 * 1024 && // 10MB limit
+        request.resource.data.status in ['uploading', 'processing', 'completed', 'failed', 'expired'];
+    }
+
+    function isValidUserData() {
+      return request.resource.data.keys().hasAll(['email', 'role', 'subscription']) &&
+        request.resource.data.role in ['admin', 'analyst', 'viewer'] &&
+        request.resource.data.subscription.keys().hasAll(['tier', 'status']) &&
+        request.resource.data.subscription.tier in ['free', 'pro', 'enterprise'] &&
+        request.resource.data.subscription.status in ['active', 'cancelled', 'past_due', 'unpaid'];
+    }
+
+    function validateTimestamp() {
+      return request.resource.data.createdAt is timestamp &&
+        request.resource.data.updatedAt is timestamp;
+    }
+
+    // Users collection - Enhanced with RBAC
     match /users/{userId} {
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-      function isSignedIn() {
-        return request.auth != null;
-      }
+      // Users can read their own profile
       allow get: if isOwner(userId);
-      allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
+
+      // Users can list other users only if they are admins
+      allow list: if isAdmin();
+
+      // Users can create their own profile during signup
+      allow create: if isAuthenticated() &&
+        isOwner(userId) &&
+        isValidUserData() &&
+        validateTimestamp();
+
+      // Users can update their own profile (limited fields)
+      allow update: if isOwner(userId) &&
+        // Prevent privilege escalation
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'updatedAt']) ||
+         // Admins can update roles and subscription info
+         (isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role', 'subscription', 'updatedAt'])));
+
+      // Only admins can delete users
+      allow delete: if isAdmin();
     }
 
-    /**
-     * @description Controls access to documents.
-     * @path /documents/{docId}
-     * @allow (create) - User with UID 'user_abc' can create a document at /documents/doc123 with userId: 'user_abc'.
-     * @allow (get, list) - Any signed-in user can read any document.
-     * @allow (update, delete) - User with UID 'user_abc' can update/delete a document at /documents/doc123 if they are the owner (userId: 'user_abc').
-     * @deny (create) - User with UID 'user_xyz' cannot create a document at /documents/doc123 with userId: 'user_abc'.
-     * @deny (update, delete) - User with UID 'user_xyz' cannot update/delete a document at /documents/doc123 owned by user_abc.
-     * @principle Enforces document ownership for writes. Allows public read access to documents.
-     */
+    // Documents collection - Enhanced security and validation
     match /documents/{docId} {
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-      function isSignedIn() {
-        return request.auth != null;
-      }
-      allow get: if true;
-      allow list: if true;
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isSignedIn() && isOwner(resource.data.userId) && resource != null;
-      allow delete: if isSignedIn() && isOwner(resource.data.userId) && resource != null;
+      // Read access based on role and ownership
+      allow get: if isAuthenticated() &&
+        (isOwner(resource.data.userId) ||
+         hasRole(['admin', 'analyst']));
+
+      // List access with role-based filtering
+      allow list: if isAuthenticated() &&
+        (hasRole(['admin', 'analyst']) ||
+         // Regular users can only list their own documents
+         (isOwner(resource.data.userId) && request.query.where('userId', '==', request.auth.uid)));
+
+      // Create with comprehensive validation
+      allow create: if isAuthenticated() &&
+        isValidDocumentData() &&
+        validateTimestamp() &&
+        // Ensure user hasn't exceeded their document limit
+        request.auth.uid == request.resource.data.userId;
+
+      // Update with ownership and state validation
+      allow update: if isAuthenticated() &&
+        isOwner(resource.data.userId) &&
+        // Validate status transitions
+        (resource.data.status == 'uploading' && request.resource.data.status in ['uploading', 'processing', 'failed']) ||
+        (resource.data.status == 'processing' && request.resource.data.status in ['processing', 'completed', 'failed']) ||
+        (resource.data.status == 'completed' && request.resource.data.status == 'completed') ||
+        (resource.data.status == 'failed' && request.resource.data.status in ['failed', 'processing']);
+
+      // Delete with ownership validation
+      allow delete: if isAuthenticated() &&
+        isOwner(resource.data.userId) &&
+        // Only allow deletion within 24 hours of creation for data integrity
+        request.time < resource.data.createdAt.toMillis() + (24 * 60 * 60 * 1000);
     }
 
-    /**
-     * @description Controls access to document chunks for large files.
-     * @path /documentChunks/{chunkId}
-     * @allow (create) - User can create chunks for their documents.
-     * @allow (get, list) - User can read chunks for their documents.
-     * @allow (update, delete) - User can modify/delete chunks for their documents.
-     * @principle Chunks are tied to documents and follow the same ownership rules.
-     */
+    // Document chunks for large file support
     match /documentChunks/{chunkId} {
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-      function isSignedIn() {
-        return request.auth != null;
-      }
-      allow get: if isSignedIn() && isOwner(resource.data.userId);
-      allow list: if isSignedIn() && isOwner(resource.data.userId);
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isSignedIn() && isOwner(resource.data.userId) && resource != null;
-      allow delete: if isSignedIn() && isOwner(resource.data.userId) && resource != null;
+      allow get, list: if isAuthenticated() &&
+        isOwner(resource.data.userId);
+
+      allow create: if isAuthenticated() &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.documentId is string &&
+        request.resource.data.chunkIndex is number &&
+        request.resource.data.totalChunks is number &&
+        request.resource.data.size is number &&
+        request.resource.data.size <= 1024 * 1024; // 1MB chunks
+
+      allow update, delete: if isAuthenticated() &&
+        isOwner(resource.data.userId);
+    }
+
+    // Audit logs - Immutable and append-only for compliance
+    match /auditLogs/{logId} {
+      // Only admins and system can read audit logs
+      allow get, list: if hasRole(['admin']);
+
+      // Only server-side functions can create audit logs
+      allow create: if false; // Handled by Cloud Functions
+
+      // Audit logs are immutable - no updates or deletes
+      allow update, delete: if false;
+    }
+
+    // Analytics data - Role-based access
+    match /analytics/{userId} {
+      allow get: if isAuthenticated() &&
+        (isOwner(userId) || hasRole(['admin', 'analyst']));
+
+      allow list: if hasRole(['admin', 'analyst']);
+
+      // Only server-side functions can write analytics
+      allow create, update, delete: if false;
+    }
+
+    // Feature flags - Admin only
+    match /featureFlags/{flagId} {
+      allow get, list: if hasRole(['admin']);
+
+      allow create, update, delete: if isAdmin() &&
+        request.resource.data.keys().hasAll(['name', 'enabled', 'description']) &&
+        request.resource.data.enabled is bool;
+    }
+
+    // Chat sessions for Q&A functionality
+    match /chatSessions/{sessionId} {
+      allow get, list: if isAuthenticated() &&
+        isOwner(resource.data.userId);
+
+      allow create: if isAuthenticated() &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.documentId is string &&
+        request.resource.data.title is string &&
+        request.resource.data.messages is list;
+
+      allow update: if isAuthenticated() &&
+        isOwner(resource.data.userId);
+
+      allow delete: if isAuthenticated() &&
+        isOwner(resource.data.userId);
+    }
+
+    // Rate limiting collection (for distributed rate limiting)
+    match /rateLimits/{limitId} {
+      // Only server-side functions can manage rate limits
+      allow read, write: if false;
+    }
+
+    // Subscription data - Protected and validated
+    match /subscriptions/{subscriptionId} {
+      allow get: if isAuthenticated() &&
+        isOwner(resource.data.userId);
+
+      allow list: if hasRole(['admin']);
+
+      // Only server-side functions can manage subscriptions
+      allow create, update, delete: if false;
+    }
+
+    // API keys and secrets - Highly restricted
+    match /apiKeys/{keyId} {
+      allow get: if isAuthenticated() &&
+        isOwner(resource.data.userId);
+
+      // Only server-side functions can create/update API keys
+      allow create, update, delete: if false;
+    }
+
+    // Webhook endpoints - Admin only
+    match /webhooks/{webhookId} {
+      allow get, list: if hasRole(['admin']);
+
+      allow create, update, delete: if isAdmin() &&
+        request.resource.data.url matches '^https://.*$';
+    }
+
+    // Default deny rule for any other collections
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

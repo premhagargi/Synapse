@@ -7,9 +7,21 @@
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 9002",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "lint:fix": "next lint --fix",
+    "typecheck": "tsc --noEmit",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "db:setup": "firebase emulators:start --only=firestore,auth --project=demo-project",
+    "db:reset": "firebase emulators:export --only=firestore,auth ./emulator-data",
+    "docker:build": "docker build -f docker/Dockerfile -t synapse-ai .",
+    "docker:run": "docker run -p 9002:9002 synapse-ai",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "analyze": "cross-env ANALYZE=true next build",
+    "postinstall": "npm run typecheck"
   },
   "dependencies": {
     "@genkit-ai/googleai": "^1.13.0",
@@ -60,9 +72,16 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@types/jest": "^29.5.0",
+    "@testing-library/react": "^14.0.0",
+    "@testing-library/jest-dom": "^5.16.0",
+    "jest": "^29.5.0",
+    "jest-environment-jsdom": "^29.5.0",
     "genkit-cli": "^1.13.0",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5"
+    "typescript": "^5",
+    "cross-env": "^7.0.3",
+    "@next/bundle-analyzer": "^14.0.0"
   }
 }
